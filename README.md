@@ -1,8 +1,8 @@
 
 #Masters on Distributed Ledger Technologies
 
-##Introduction
+## Introduction
 This is the entry page for the DLT Masters
 
-##References
+## References
 [Here](References.md)
