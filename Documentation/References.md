@@ -1,3 +1,8 @@
+---
+title: Tags
+layout: default
+---
+
 # References
 
 ## References for Blockchain and IoT
