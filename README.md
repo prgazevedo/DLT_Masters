@@ -5,4 +5,4 @@
 This is the entry page for the DLT Masters
 
 ## References
-[Here](2019-03-17-References.md)
+[Here](https://github.com/prgazevedo/DLT_Masters/blob/master/Documentation/References.md)
