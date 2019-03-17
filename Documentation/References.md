@@ -4,11 +4,10 @@
 
 
 1. Blockchain + IoT for Supply Chain – Hacker Noon [January 2019] (https://hackernoon.com/blockchain-iot-for-supply-chain-1b07d4afd614)
-
 2. Network World articles on IoT and Blockchain
- 1. [January 2019] (https://www.networkworld.com/article/3330937/how-blockchain-will-transform-the-iot.html)
- 2. [August 2018] (https://www.networkworld.com/article/3295903/why-blockchain-is-the-missing-link-to-iot-transformations.html)
- 3. [January 2018] (https://www.networkworld.com/article/3250680/when-iot-met-blockchain.html)
+  1. [January 2019] (https://www.networkworld.com/article/3330937/how-blockchain-will-transform-the-iot.html)
+  2. [August 2018] (https://www.networkworld.com/article/3295903/why-blockchain-is-the-missing-link-to-iot-transformations.html)
+  3. [January 2018] (https://www.networkworld.com/article/3250680/when-iot-met-blockchain.html)
 
 
  3. Deloitte -Continuous interconnected supply chain
