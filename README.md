@@ -1,4 +1,4 @@
 
-# Masters on Distributed Ledger Technologies
+# Introduction to PKC and PKI
 
-[wiki here] https://github.com/prgazevedo/DLT_Masters/wiki
+[wiki here](https://github.com/prgazevedo/DLT_Masters/wiki)
