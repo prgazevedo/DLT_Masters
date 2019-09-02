@@ -1,4 +1,4 @@
 
-# Introduction to PKC and PKI
+# Repository for Documentation
 
-[wiki here](https://github.com/prgazevedo/DLT_Masters/wiki)
+[Introduction to PKC and PKI](https://github.com/prgazevedo/DLT_Masters/wiki)
