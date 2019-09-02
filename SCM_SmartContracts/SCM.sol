@@ -79,7 +79,7 @@ contract SCM is Owned{
    /* Interworking with WallId Architecture
    */
 
-  /// @notice called by StoreID provider after successful importIDCertificate
+  /// @notice called by User after successful importIDCertificate
   function IDcertificateImported(address actorAddress_, uint40 prefix_) public{
       emit RequestKYC(actorAddress_, prefix_);
   }
