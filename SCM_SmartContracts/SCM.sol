@@ -52,7 +52,7 @@ contract SCM is Owned{
   /// Event to request validation of ID and certificates of SC Actor
   event importEPCCertificate(
         address actorAddress_,
-        uint prefix_
+        uint prefix_,
         uint96 EPC_
   );
 
@@ -80,7 +80,7 @@ contract SCM is Owned{
    */
 
   /// @notice called by StoreID provider after successful importIDCertificate
-  function IDcertificateImported(address actorAddress_, uint40 prefix_){
+  function IDcertificateImported(address actorAddress_, uint40 prefix_) public{
       emit RequestKYC(actorAddress_, prefix_);
   }
 
@@ -90,7 +90,7 @@ contract SCM is Owned{
   }
 
   /// @notice called by StoreID provider after successful importIDCertificate
-  function certificateProductImported(address actorAddress_, uint40 prefix_, uint96 EPC_){
+  function certificateProductImportedAndValidated(uint96 EPC_) public onlyValidator{
       //TODO check if import and certification can be in tandem
       setProductAsCertified(EPC_);
   }
@@ -397,7 +397,7 @@ contract SCM is Owned{
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
       isCallerCurrentOwner(EPC_) public returns (bool ret) {
-         productMap[EPC_].hasCertificate;=true;
+         productMap[EPC_].hasCertificate=true;
          return true;
     }
 
@@ -454,9 +454,9 @@ contract SCM is Owned{
     function lostProduct(uint96 EPC_)
     isNotCustomer
     isAddressValidated(msg.sender)
-    isPreviousOwner(EPC_)
+    isPreviousOwner(EPC_,msg.sender)
     isRegisteredEPC(EPC_) public returns (bool ret){
-        setCurrentState( oldEPC_,custodyState.lost )
+        setCurrentState( EPC_,custodyState.lost );
         productMap[EPC_].owner = msg.sender;
         productMap[EPC_].nextOwner = msg.sender;
         deleteEPC(msg.sender, EPC_);
@@ -470,13 +470,13 @@ contract SCM is Owned{
     function transformProduct(uint96 oldEPC_,uint96 newEPC_)
     isTransformation
     isAddressValidated(msg.sender)
-    isPreviousOwner(oldEPC_)
+    isPreviousOwner(oldEPC_,msg.sender)
     isRegisteredEPC(oldEPC_)
     isRegisteredEPC(newEPC_)
-    isStateOwned(EPC_) public returns (bool ret){
-        setCurrentState( oldEPC_,custodyState.consumed )
-        productMap[EPC_].owner = msg.sender;
-        productMap[EPC_].nextOwner = msg.sender;
+    isStateOwned(oldEPC_) public returns (bool ret){
+        setCurrentState( oldEPC_,custodyState.consumed );
+        productMap[oldEPC_].owner = msg.sender;
+        productMap[oldEPC_].nextOwner = msg.sender;
         deleteEPC(msg.sender, oldEPC_);
         //TODO replace return with event
         return true;
