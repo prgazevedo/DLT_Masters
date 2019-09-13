@@ -1,0 +1,23 @@
+
+@startuml
+title SCM: Register a certified Product - Events Sequence Diagram
+actor SCA
+SCA -> SCM_SC: RegisterSCA()
+activate SCM_SC
+SCM_SC --> SCA: EVENT:importEPCCertificate()
+deactivate SCM_SC
+SCA -> WallId_SC: addInfo(Indentity)
+SCA -> StoreID_Provider: ImportID(certificate)
+SCA -> SCM_SC: ProductCertificateImported()
+activate SCM_SC
+SCM_SC --> SCA: RequestKYP()
+deactivate SCM_SC
+SCA -> WallId_SC: getIdtDataVerified()
+== Payment to\n StoreId Provider\n ==
+StoreID_Provider -> WallId_SC: acceptedUserData(Certificate)
+ WallId_SC --> SCA: EventDataId(Identity,Certificate)
+SCA -> SC_Validator: PerformKYP(Identity, Certificate)
+SC_Validator -> SCM_SC: KYPcompleted
+activate SCM_SC
+SCM_SC -> SCM_SC: setProductAsCertified
+@enduml

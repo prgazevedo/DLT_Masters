@@ -86,7 +86,7 @@ contract SCM is Owned{
 
   /// @notice Called by CertificateValidator after KYC(Actor) has been completed - only CertificateValidator address may call this
   function KYCcompleted(address actorAddress_) public onlyValidator{
-      scActors[actorAddress_].validated=true;
+    setActorAsValidated(actorAddress_);
   }
 
   /// @notice called by User after successful importEPCCertificate
@@ -100,6 +100,7 @@ contract SCM is Owned{
   }
 
 
+
    /**
     /* A Certificate Validator off chain (SC Manager) is Required
     */
@@ -110,8 +111,12 @@ contract SCM is Owned{
   function setValidator(address validatorAddress_) public onlyOwner{
     validator=validatorAddress_;
   }
-
-
+  /// Helper function
+  function setActorAsValidated(address actorAddress_) internal returns (bool ret) {
+       scActors[actorAddress_].validated=true;
+       return true;
+  }
+  
   /// Helper function
   function getActorAddress(uint40 prefix_) public view returns (address) {
     return companyPrefixToactorAddress[prefix_];
@@ -487,8 +492,6 @@ contract SCM is Owned{
         return true;
     }
 
-    //END
-
-
 
 }
+//END
