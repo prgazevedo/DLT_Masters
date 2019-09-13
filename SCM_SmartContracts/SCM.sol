@@ -37,27 +37,26 @@ contract SCM is Owned{
     _;
   }
 
-  /// Event to request validation of ID and certificates of SC Actor
+  /// After call registerActor(): Event to request import of ID and certificates of SC Actor
   event importIDCertificate(
         address actorAddress_,
         uint prefix_
   );
 
-  /// Event to request validation of ID and certificates of SC Actor
+  /// After event importIDCertificate(): Event to request validation of ID and certificates of SC Actor
   event RequestKYC(
         address actorAddress_,
         uint prefix_
   );
 
-  /// Event to request validation of ID and certificates of SC Actor
+  /// After call registerProduct(): Event to request import of ID and certificates of product
   event importEPCCertificate(
-        address actorAddress_,
-        uint prefix_,
+        address callerAddress_,
         uint96 EPC_
   );
 
   /// Event to request validation of ID and certificates of SC Actor
-  event RequestKYProductCertificates(
+  event RequestKYP(
         address actorAddress_,
         uint96 EPC_
   );
@@ -71,6 +70,7 @@ contract SCM is Owned{
     scActors[actorAddress_].actorRole=actorRole_;
     scActors[actorAddress_].registered=true;
     companyPrefixToactorAddress[prefix_]=msg.sender;
+      //Start the SCA certificate validation: import the ID and Certificates
     emit importIDCertificate(actorAddress_, prefix_);
 
   }
@@ -80,24 +80,28 @@ contract SCM is Owned{
    */
 
   /// @notice called by User after successful importIDCertificate
-  function IDcertificateImported(address actorAddress_, uint40 prefix_) public{
+  function IDCertificateImported(address actorAddress_, uint40 prefix_) public{
       emit RequestKYC(actorAddress_, prefix_);
   }
 
-  /// @notice Called by CertificateValidator after KYC has been completed - only CertificateValidator address may call this
+  /// @notice Called by CertificateValidator after KYC(Actor) has been completed - only CertificateValidator address may call this
   function KYCcompleted(address actorAddress_) public onlyValidator{
       scActors[actorAddress_].validated=true;
   }
 
-  /// @notice called by StoreID provider after successful importIDCertificate
-  function certificateProductImportedAndValidated(uint96 EPC_) public onlyValidator{
-      //TODO check if import and certification can be in tandem
+  /// @notice called by User after successful importEPCCertificate
+  function ProductCertificateImported(address actorAddress_, uint96 EPC_) public{
+      emit RequestKYP(actorAddress_, EPC_);
+  }
+
+  /// @notice Called by CertificateValidator after KYP (Product) has been completed - only CertificateValidator address may call this
+  function KYPcompleted(uint96 EPC_) public onlyValidator{
       setProductAsCertified(EPC_);
   }
 
 
    /**
-    /* A Validator is Required
+    /* A Certificate Validator off chain (SC Manager) is Required
     */
 
   address validator;
@@ -125,7 +129,6 @@ contract SCM is Owned{
   function isActorRegistered(address addressToCheck_) public view returns(bool ret){
     return scActors[addressToCheck_].registered;
   }
-
 
   /// Only supplier can register products
   modifier isSupplier {
@@ -417,6 +420,8 @@ contract SCM is Owned{
         productMap[EPC_].location = _location;
         productMap[EPC_].myEPC = EPC_;
         addEPC(callerAddress_, EPC_);
+        //Start the Product certificate validation: import the ID and Certificates
+        emit importEPCCertificate(callerAddress_, EPC_);
         return true;
     }
 
