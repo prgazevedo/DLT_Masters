@@ -24,7 +24,7 @@ contract SCM is Owned{
       bool      validated;
   }
 
-  enum actorType { SUPPLIER, TRANSFORMATION, LOGISTICS, RETAILERS, CUSTOMER }
+  enum actorType { SUPPLIER, TRANSFORMATION, LOGISTICS, RETAILERS, MANAGER }
 
 
   ///  mapping with struct has some advantages for unique Ids - https://ethfiddle.com/PgDM-drAc9
@@ -33,33 +33,37 @@ contract SCM is Owned{
 
   /// ValidateID: onlyValidator
   modifier onlyValidator{
-    require(msg.sender == validator,"Only the validator may call this function");
+    require(msg.sender == validatorAddress,"Only the validator may call this function");
     _;
   }
 
   /// After call registerActor(): Event to request import of ID and certificates of SC Actor
   event importIDCertificate(
-        address actorAddress_,
-        uint prefix_
+        address actorAddress,
+        uint prefix
   );
 
   /// After event importIDCertificate(): Event to request validation of ID and certificates of SC Actor
   event RequestKYC(
-        address actorAddress_,
-        uint prefix_
+        address actorAddress,
+        uint prefix
   );
 
   /// After call registerProduct(): Event to request import of ID and certificates of product
+  /// Notice that the validatorAddress will be the ID that the SCA has to give ownership to
+  /// the certificate
   event importEPCCertificate(
-        address callerAddress_,
-        uint96 EPC_
+        address callerAddress,
+        address validatorAddress,
+        uint96 EPC
   );
 
   /// Event to request validation of ID and certificates of SC Actor
   event RequestKYP(
-        address actorAddress_,
-        uint96 EPC_
+        address actorAddress,
+        uint96 EPC
   );
+
 
 
   /// @notice  Implements the use case: register Actor
@@ -102,21 +106,26 @@ contract SCM is Owned{
 
 
    /**
-    /* A Certificate Validator off chain (SC Manager) is Required
+    /* The Certificate Validator role  (SCM Manager) is Required
+    * The SCM Manager/Validator is responsible to validate the SCA identities
+    * (hash verification has to be done off chain due to EVM hasing costs)
+    * and when product certificates are imported into the Store he will be the owner/ID
+    * of the product certificates in order to be able to respond to other SCAs/customer certificate
+    * verification requests
     */
 
-  address validator;
+  address validatorAddress;
 
   /// ValidateID: Set validator wallet address
   function setValidator(address validatorAddress_) public onlyOwner{
-    validator=validatorAddress_;
+    validatorAddress=validatorAddress_;
   }
   /// Helper function
   function setActorAsValidated(address actorAddress_) internal returns (bool ret) {
        scActors[actorAddress_].validated=true;
        return true;
   }
-  
+
   /// Helper function
   function getActorAddress(uint40 prefix_) public view returns (address) {
     return companyPrefixToactorAddress[prefix_];
@@ -148,8 +157,8 @@ contract SCM is Owned{
   }
 
   /// Only supplier can register products
-  modifier isNotCustomer {
-      require(getActorRole(msg.sender) != actorType.CUSTOMER, "Function not accessible to Customers");
+  modifier isNotManager {
+      require(getActorRole(msg.sender) != actorType.MANAGER, "Function not accessible to SC Manager");
       _;
   }
 
@@ -186,7 +195,7 @@ contract SCM is Owned{
         //no need to add Time data since all Transactions are visible and TimeStamped
     }
 
-    enum custodyState {inControl, inTransfer, lost, consumed}
+    enum custodyState {inControl, inTransfer, lost, consumed, sold}
 
     /// 32 bits seems enough for location database - https://www.thethingsnetwork.org/forum/t/best-practices-when-sending-gps-location-data/1242
     struct geoPosition{
@@ -261,6 +270,24 @@ contract SCM is Owned{
      _;
     }
 
+    /// EPC validated flag must be set before certificates can be retrieved
+    modifier isEPCCertified(uint96 EPC_){
+      require(isEPCValidated(EPC_), "Product with given EPC is not certified");
+     _;
+    }
+
+    /// SCAs can view certificate and Customer by proxy if product is in sale (role=MANAGER)
+    function isCallerAllowedToViewCertificate(address callerAddress_,uint96 EPC_) internal view returns(bool retAllowed){
+      //either it is the owner of the product
+      if(getCurrentOwner(EPC_)==callerAddress_) return true;
+      //or it is a customer by proxy of SC manager
+      else if(validatorAddress==callerAddress_)
+      {
+        if(isStateSold(EPC_)) return true;
+        else return false;
+      }
+      else return false;
+    }
 
     /**
     /* SCM Product Helper Functions
@@ -281,6 +308,17 @@ contract SCM is Owned{
       else return false;
     }
 
+    /// Helper function
+    function isEPCValidated(uint96 EPC_) internal view returns (bool ret){
+      if( productMap[EPC_].hasCertificate==true ) return true;
+      else return false;
+    }
+
+    /// EPC state must be sold
+    function isStateSold(uint96 EPC_) internal view returns (bool ret){
+      if(getCurrentState(EPC_)==custodyState.sold) return true;
+      else return false;
+    }
 
     /// Helper function
     function haveProducts(address ownerAddress_) internal view returns (bool ret){
@@ -320,7 +358,7 @@ contract SCM is Owned{
     /// @notice Implements the use case:  getEPCBalance
     /// Helper function - MUST TEST
     function getEPCBalance(address ownerAddress_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isAddressFromCaller(ownerAddress_)
     public view returns (uint ret){
@@ -331,7 +369,7 @@ contract SCM is Owned{
     /// @notice  Implements the use case:  getMyEPCs
     /// Helper function - MUST TEST
     function getMyEPCs(address ownerAddress_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isAddressFromCaller(ownerAddress_)
     ownerHasProducts public view returns (uint96[] memory ret){
@@ -345,7 +383,7 @@ contract SCM is Owned{
 
     /// @notice  Implements the use case:  getCurrentOwner
     function getCurrentOwner(uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) public view returns (address retOwner) {
         return productMap[EPC_].owner;
@@ -353,7 +391,7 @@ contract SCM is Owned{
 
     /// @notice  Implements the use case:  getNextOwner
     function getNextOwner(uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) view public returns (address ret_nextOwnerAddress) {
         return productMap[EPC_].nextOwner;
@@ -361,14 +399,14 @@ contract SCM is Owned{
 
     /// @notice Implements the use case: getCurrentState
     function getCurrentState(uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) public view returns (custodyState ret_state) {
         return productMap[EPC_].custody;
     }
     /// @notice Implements the use case: getCurrentLocation
     function getCurrentLocation(uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) public view returns (geoPosition memory ret_location) {
         return productMap[EPC_].location;
@@ -383,6 +421,8 @@ contract SCM is Owned{
     }
 
     /// @notice  Implements the use case: setCurrentState
+    /// Actors can additionally set the role: sold - to indicate that
+    /// certificate information can now be retrieved by SC Manager
     function setCurrentState(uint96 EPC_,custodyState state_)
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
@@ -410,6 +450,35 @@ contract SCM is Owned{
     }
 
 
+    //TODO when to release memory of sold products?
+    /// @notice Implements the use case: setProductAsCertified
+    function setProductAsSold(uint96 EPC_)
+      isAddressValidated(msg.sender)
+      isRegisteredEPC(EPC_)
+      isCallerCurrentOwner(EPC_) public returns (bool ret) {
+         setCurrentState( EPC_,custodyState.sold);
+         setManagerAsOwner(EPC_);
+         return true;
+    }
+
+    /// @notice When the product is to be sold the owner is the SC Manager
+    function setManagerAsOwner( uint96 EPC_) internal returns (bool ret){
+        productMap[EPC_].owner = validatorAddress;
+        productMap[EPC_].nextOwner = validatorAddress;
+        //TODO replace return with event
+        return true;
+    }
+
+    /// @notice Implements the use case: getProductCertificate
+    function getProductCertificate(uint96 EPC_)
+      isAddressValidated(msg.sender)
+      isRegisteredEPC(EPC_)
+      isEPCCertified(EPC_) public view returns (bool ret) {
+         //Can view Certificate if he is the owner of the EPC or if the product has been sold the customer by proxy to SCM
+         if(isCallerAllowedToViewCertificate(msg.sender,EPC_)) return true;
+         else return false;
+    }
+
     /// @notice  Implements the use case: register Product
     // https://github.com/ethereum/solidity/releases/tag/v0.5.7 has fix for ABIEncoderV2
     function registerProduct(address callerAddress_, uint96 EPC_, geoPosition memory _location  )
@@ -426,14 +495,15 @@ contract SCM is Owned{
         productMap[EPC_].myEPC = EPC_;
         addEPC(callerAddress_, EPC_);
         //Start the Product certificate validation: import the ID and Certificates
-        emit importEPCCertificate(callerAddress_, EPC_);
+        // Notice that the import is not for the caller but for the SC Manager/validator
+        emit importEPCCertificate(callerAddress_,validatorAddress, EPC_);
         return true;
     }
 
 
     /// @notice Implements the use case:  transfer Ownership TO
     function transferTO( address addressTO_, uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isAddressValidated(addressTO_)
     isRegisteredEPC(EPC_)
@@ -447,7 +517,7 @@ contract SCM is Owned{
 
     /// @notice Implements the use case:  transfer Ownership TO
     function receiveFROM( address addressFROM_, uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isPreviousOwner(EPC_,addressFROM_)
     isRegisteredEPC(EPC_)
@@ -462,7 +532,7 @@ contract SCM is Owned{
 
     /// @notice Implements the use case:  lostProduct
     function lostProduct(uint96 EPC_)
-    isNotCustomer
+    isNotManager
     isAddressValidated(msg.sender)
     isPreviousOwner(EPC_,msg.sender)
     isRegisteredEPC(EPC_) public returns (bool ret){
