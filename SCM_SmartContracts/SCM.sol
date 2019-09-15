@@ -50,17 +50,16 @@ contract SCM is Owned{
   );
 
   /// After call registerProduct(): Event to request import of ID and certificates of product
-  /// Notice that the validatorAddress will be the ID that the SCA has to give ownership to
-  /// the certificate
   event importEPCCertificate(
         address callerAddress,
-        address validatorAddress,
         uint96 EPC
   );
 
   /// Event to request validation of ID and certificates of SC Actor
   event RequestKYP(
-        address actorAddress,
+        address certificateOwnerAddress,
+        //the Actor that will be able to view the certificate via the SCM url
+        address viewerAddress,
         uint96 EPC
   );
 
@@ -95,7 +94,8 @@ contract SCM is Owned{
 
   /// @notice called by User after successful importEPCCertificate
   function ProductCertificateImported(address actorAddress_, uint96 EPC_) public{
-      emit RequestKYP(actorAddress_, EPC_);
+      //request KYP for the ownerAddress which in this case is also the the viewerAddress
+      emit RequestKYP(actorAddress_, actorAddress_, EPC_);
   }
 
   /// @notice Called by CertificateValidator after KYP (Product) has been completed - only CertificateValidator address may call this
@@ -185,6 +185,7 @@ contract SCM is Owned{
   */
 
     struct productData {
+        address certificateOwner;
         address owner;
         custodyState custody;
         bool  exists;
@@ -412,6 +413,16 @@ contract SCM is Owned{
         return productMap[EPC_].location;
     }
 
+    /// @notice Helper function: getCertificateOwner
+    function getCertificateOwner(uint96 EPC_)
+    isNotManager
+    isAddressValidated(msg.sender)
+    isRegisteredEPC(EPC_)
+    isEPCCertified(EPC_) public view returns (address ret_address) {
+        return productMap[EPC_].certificateOwner;
+    }
+
+
     /// @notice Implements the use case: isProductCertified
     /// @dev This is accessible by final Customers
     function isProductCertified(uint96 EPC_)
@@ -419,6 +430,8 @@ contract SCM is Owned{
     isRegisteredEPC(EPC_) public view returns (bool ret) {
         return productMap[EPC_].hasCertificate;
     }
+
+
 
     /// @notice  Implements the use case: setCurrentState
     /// Actors can additionally set the role: sold - to indicate that
@@ -445,13 +458,14 @@ contract SCM is Owned{
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
       isCallerCurrentOwner(EPC_) public returns (bool ret) {
+        productMap[EPC_].certificateOwner=getCurrentOwner(EPC_);
          productMap[EPC_].hasCertificate=true;
          return true;
     }
 
 
     //TODO when to release memory of sold products?
-    /// @notice Implements the use case: setProductAsCertified
+    /// @notice Implements setProductAsCertified
     function setProductAsSold(uint96 EPC_)
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
@@ -465,17 +479,23 @@ contract SCM is Owned{
     function setManagerAsOwner( uint96 EPC_) internal returns (bool ret){
         productMap[EPC_].owner = validatorAddress;
         productMap[EPC_].nextOwner = validatorAddress;
-        //TODO replace return with event
         return true;
     }
+
+    /*
+    * USE CASES
+    */
 
     /// @notice Implements the use case: getProductCertificate
     function getProductCertificate(uint96 EPC_)
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
-      isEPCCertified(EPC_) public view returns (bool ret) {
+      isEPCCertified(EPC_) public returns (bool ret) {
          //Can view Certificate if he is the owner of the EPC or if the product has been sold the customer by proxy to SCM
-         if(isCallerAllowedToViewCertificate(msg.sender,EPC_)) return true;
+         if(isCallerAllowedToViewCertificate(msg.sender,EPC_)){
+          emit RequestKYP(getCertificateOwner(EPC_), msg.sender, EPC_);
+           return true;
+         }
          else return false;
     }
 
@@ -495,8 +515,7 @@ contract SCM is Owned{
         productMap[EPC_].myEPC = EPC_;
         addEPC(callerAddress_, EPC_);
         //Start the Product certificate validation: import the ID and Certificates
-        // Notice that the import is not for the caller but for the SC Manager/validator
-        emit importEPCCertificate(callerAddress_,validatorAddress, EPC_);
+        emit importEPCCertificate(callerAddress_, EPC_);
         return true;
     }
 
