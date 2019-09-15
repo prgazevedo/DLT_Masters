@@ -119,6 +119,10 @@ contract SCM is Owned{
   /// ValidateID: Set validator wallet address
   function setValidator(address validatorAddress_) public onlyOwner{
     validatorAddress=validatorAddress_;
+    scActors[validatorAddress_].actorAddress=validatorAddress_;
+    scActors[validatorAddress_].actorRole=actorType.MANAGER;
+    scActors[validatorAddress_].registered=true;
+    scActors[validatorAddress_].validated=true;
   }
   /// Helper function
   function setActorAsValidated(address actorAddress_) internal returns (bool ret) {
@@ -185,14 +189,17 @@ contract SCM is Owned{
   */
 
     struct productData {
-        address certificateOwner;
-        address owner;
+        address certificateOwner; //references the certificate owner
+        uint96 certificateEPC; //references the EPC that has certificate
+        bool hasCertificate;
+        address owner; //references the current owner of the
         custodyState custody;
         bool  exists;
         address nextOwner;
         geoPosition location;
+        uint96 previousEPC; //used to maintain traceability of certificates
         uint96 myEPC;
-        bool hasCertificate;
+
         //no need to add Time data since all Transactions are visible and TimeStamped
     }
 
@@ -277,6 +284,72 @@ contract SCM is Owned{
      _;
     }
 
+    /**
+    /* SCM Product Internal Helper Functions
+    */
+
+    /// Internal Helper function
+    function isMember(uint96 EPC_) internal view returns(bool retExists) {
+          return productMap[EPC_].exists;
+    }
+    /// Helper function
+    function extractPrefix(uint96 EPC_) internal pure returns (uint40 ret){
+      return uint40(EPC_ >> 42);
+    }
+    /// Internal Helper function
+    function verifyEPC(uint96 EPC_,address callerAddress_) internal view returns (bool ret){
+      if( getActorAddress(extractPrefix(EPC_)) == callerAddress_ ) return true;
+      else return false;
+    }
+
+    /// Internal Helper function
+    function isEPCValidated(uint96 EPC_) internal view returns (bool ret){
+      if( productMap[EPC_].hasCertificate==true ) return true;
+      else return false;
+    }
+
+    /// Internal Helper function
+    function isStateSold(uint96 EPC_) internal view returns (bool ret){
+      if(getCurrentState(EPC_)==custodyState.sold) return true;
+      else return false;
+    }
+
+    /// Internal Helper function
+    function haveProducts(address ownerAddress_) internal view returns (bool ret){
+      if(ownerProducts[ownerAddress_].myOwnedEPCS.length != 0) return true;
+      else return false;
+    }
+
+    ///  Helper function
+    function getEPCPointer(address ownerAddress_, uint96 EPC_) internal view returns (uint ret){
+       return ownerProducts[ownerAddress_].epcPointers[EPC_];
+    }
+
+    /// Internal Helper function
+    function existsEPC(address ownerAddress_, uint96 EPC_) internal view returns (bool ret){
+      if(ownerProducts[ownerAddress_].myOwnedEPCS[getEPCPointer(ownerAddress_,EPC_)] == EPC_) return true;
+      else return false;
+    }
+    /// Internal Helper function
+    function isEPCOwned(address ownerAddress_, uint96 EPC_) internal view returns(bool isOwned) {
+        if(!haveProducts(ownerAddress_)) return false;
+        else return existsEPC(ownerAddress_,EPC_);
+    }
+    /// Internal Helper function - TODO TEST
+    function deleteEPC(address ownerAddress_, uint96 EPC_) internal {
+        ownedEPCs storage temp = ownerProducts[ownerAddress_];
+        require(isEPCOwned(ownerAddress_, EPC_));
+        uint indexToDelete = temp.epcPointers[EPC_]; //no need to delete epcPointers => initialized HashMap
+        temp.myOwnedEPCS[indexToDelete] = temp.myOwnedEPCS[temp.myOwnedEPCS.length-1]; //move to Last
+        temp.myOwnedEPCS.length--; //deleteLast
+    }
+    /// Internal Helper function - TODO TEST
+    function addEPC(address ownerAddress_, uint96 EPC_) internal {
+        uint epcPointer = ownerProducts[ownerAddress_].myOwnedEPCS.push(EPC_)-1;
+        ownerProducts[ownerAddress_].epcPointers[EPC_]=epcPointer;
+    }
+
+    /// Internal Helper function
     /// SCAs can view certificate and Customer by proxy if product is in sale (role=MANAGER)
     function isCallerAllowedToViewCertificate(address callerAddress_,uint96 EPC_) internal view returns(bool retAllowed){
       //either it is the owner of the product
@@ -291,73 +364,11 @@ contract SCM is Owned{
     }
 
     /**
-    /* SCM Product Helper Functions
+    /* SCM Product GET/SET Use case functions
     */
 
-
-    /// Helper function
-    function isMember(uint96 EPC_) internal view returns(bool retExists) {
-          return productMap[EPC_].exists;
-    }
-    /// Helper function
-    function extractPrefix(uint96 EPC_) internal pure returns (uint40 ret){
-      return uint40(EPC_ >> 42);
-    }
-    /// Helper function
-    function verifyEPC(uint96 EPC_,address callerAddress_) internal view returns (bool ret){
-      if( getActorAddress(extractPrefix(EPC_)) == callerAddress_ ) return true;
-      else return false;
-    }
-
-    /// Helper function
-    function isEPCValidated(uint96 EPC_) internal view returns (bool ret){
-      if( productMap[EPC_].hasCertificate==true ) return true;
-      else return false;
-    }
-
-    /// EPC state must be sold
-    function isStateSold(uint96 EPC_) internal view returns (bool ret){
-      if(getCurrentState(EPC_)==custodyState.sold) return true;
-      else return false;
-    }
-
-    /// Helper function
-    function haveProducts(address ownerAddress_) internal view returns (bool ret){
-      if(ownerProducts[ownerAddress_].myOwnedEPCS.length != 0) return true;
-      else return false;
-    }
-
-    ///  Helper function
-    function getEPCPointer(address ownerAddress_, uint96 EPC_) internal view returns (uint ret){
-       return ownerProducts[ownerAddress_].epcPointers[EPC_];
-    }
-
-    /// Helper function
-    function existsEPC(address ownerAddress_, uint96 EPC_) internal view returns (bool ret){
-      if(ownerProducts[ownerAddress_].myOwnedEPCS[getEPCPointer(ownerAddress_,EPC_)] == EPC_) return true;
-      else return false;
-    }
-    ///  Helper function
-    function isEPCOwned(address ownerAddress_, uint96 EPC_) public view returns(bool isOwned) {
-        if(!haveProducts(ownerAddress_)) return false;
-        else return existsEPC(ownerAddress_,EPC_);
-    }
-    /// Helper function - MUST TEST
-    function deleteEPC(address ownerAddress_, uint96 EPC_) internal {
-        ownedEPCs storage temp = ownerProducts[ownerAddress_];
-        require(isEPCOwned(ownerAddress_, EPC_));
-        uint indexToDelete = temp.epcPointers[EPC_]; //no need to delete epcPointers => initialized HashMap
-        temp.myOwnedEPCS[indexToDelete] = temp.myOwnedEPCS[temp.myOwnedEPCS.length-1]; //move to Last
-        temp.myOwnedEPCS.length--; //deleteLast
-    }
-    /// Helper function - MUST TEST
-    function addEPC(address ownerAddress_, uint96 EPC_) internal {
-        uint epcPointer = ownerProducts[ownerAddress_].myOwnedEPCS.push(EPC_)-1;
-        ownerProducts[ownerAddress_].epcPointers[EPC_]=epcPointer;
-    }
-
     /// @notice Implements the use case:  getEPCBalance
-    /// Helper function - MUST TEST
+    /// TODO TEST
     function getEPCBalance(address ownerAddress_)
     isNotManager
     isAddressValidated(msg.sender)
@@ -368,7 +379,7 @@ contract SCM is Owned{
     }
 
     /// @notice  Implements the use case:  getMyEPCs
-    /// Helper function - MUST TEST
+    /// TODO TEST
     function getMyEPCs(address ownerAddress_)
     isNotManager
     isAddressValidated(msg.sender)
@@ -378,13 +389,8 @@ contract SCM is Owned{
         return ownerProducts[msg.sender].myOwnedEPCS;
     }
 
-    /**
-    /* SCM Product Use Case Functions
-    */
-
     /// @notice  Implements the use case:  getCurrentOwner
     function getCurrentOwner(uint96 EPC_)
-    isNotManager
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) public view returns (address retOwner) {
         return productMap[EPC_].owner;
@@ -400,14 +406,14 @@ contract SCM is Owned{
 
     /// @notice Implements the use case: getCurrentState
     function getCurrentState(uint96 EPC_)
-    isNotManager
+    isCallerCurrentOwner(EPC_) //only owner can view the state
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) public view returns (custodyState ret_state) {
         return productMap[EPC_].custody;
     }
     /// @notice Implements the use case: getCurrentLocation
     function getCurrentLocation(uint96 EPC_)
-    isNotManager
+    isCallerCurrentOwner(EPC_) //only owner can view the state
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_) public view returns (geoPosition memory ret_location) {
         return productMap[EPC_].location;
@@ -415,23 +421,21 @@ contract SCM is Owned{
 
     /// @notice Helper function: getCertificateOwner
     function getCertificateOwner(uint96 EPC_)
-    isNotManager
+    isCallerCurrentOwner(EPC_) //only owner can view the state
     isAddressValidated(msg.sender)
     isRegisteredEPC(EPC_)
     isEPCCertified(EPC_) public view returns (address ret_address) {
         return productMap[EPC_].certificateOwner;
     }
 
-
-    /// @notice Implements the use case: isProductCertified
-    /// @dev This is accessible by final Customers
-    function isProductCertified(uint96 EPC_)
+    /// @notice Helper function: getCertificateOwner
+    function getCertificateEPC(uint96 EPC_)
+    isCallerCurrentOwner(EPC_) //only owner can view the state
     isAddressValidated(msg.sender)
-    isRegisteredEPC(EPC_) public view returns (bool ret) {
-        return productMap[EPC_].hasCertificate;
+    isRegisteredEPC(EPC_)
+    isEPCCertified(EPC_) public view returns (uint96 ret_EPC) {
+        return productMap[EPC_].certificateEPC;
     }
-
-
 
     /// @notice  Implements the use case: setCurrentState
     /// Actors can additionally set the role: sold - to indicate that
@@ -459,6 +463,7 @@ contract SCM is Owned{
       isRegisteredEPC(EPC_)
       isCallerCurrentOwner(EPC_) public returns (bool ret) {
         productMap[EPC_].certificateOwner=getCurrentOwner(EPC_);
+        productMap[EPC_].certificateEPC=EPC_;
          productMap[EPC_].hasCertificate=true;
          return true;
     }
@@ -483,7 +488,7 @@ contract SCM is Owned{
     }
 
     /*
-    * USE CASES
+    * MAJOR USE CASES
     */
 
     /// @notice Implements the use case: getProductCertificate
@@ -493,7 +498,7 @@ contract SCM is Owned{
       isEPCCertified(EPC_) public returns (bool ret) {
          //Can view Certificate if he is the owner of the EPC or if the product has been sold the customer by proxy to SCM
          if(isCallerAllowedToViewCertificate(msg.sender,EPC_)){
-          emit RequestKYP(getCertificateOwner(EPC_), msg.sender, EPC_);
+          emit RequestKYP(getCertificateOwner(EPC_), msg.sender, getCertificateEPC(EPC_));
            return true;
          }
          else return false;
@@ -503,7 +508,7 @@ contract SCM is Owned{
     // https://github.com/ethereum/solidity/releases/tag/v0.5.7 has fix for ABIEncoderV2
     function registerProduct(address callerAddress_, uint96 EPC_, geoPosition memory _location  )
     isAddressValidated(msg.sender)
-    isSupplier //TODO: check access clash with Transformation
+    isSupplier
     isAddressFromCaller(callerAddress_)
     isEPCcorrect(EPC_,callerAddress_)
     notRegisteredEPC(EPC_) public returns (bool ret){
@@ -576,8 +581,16 @@ contract SCM is Owned{
         setCurrentState( oldEPC_,custodyState.consumed );
         productMap[oldEPC_].owner = msg.sender;
         productMap[oldEPC_].nextOwner = msg.sender;
+        //Create new product with reference to old product
+        productMap[newEPC_].owner = msg.sender;
+        productMap[newEPC_].custody = custodyState.inControl;
+        productMap[newEPC_].exists = true;
+        productMap[newEPC_].location = productMap[oldEPC_].location;
+        productMap[newEPC_].myEPC = newEPC_;
+        productMap[newEPC_].previousEPC=oldEPC_;
         deleteEPC(msg.sender, oldEPC_);
-        //TODO replace return with event
+        addEPC(msg.sender, newEPC_);
+        //
         return true;
     }
 
