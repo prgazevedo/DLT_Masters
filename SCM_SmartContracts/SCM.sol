@@ -31,11 +31,6 @@ contract SCM is Owned{
   mapping (address => SCActor) scActors;
   mapping (uint40 => address) companyPrefixToactorAddress;
 
-  /// ValidateID: onlyValidator
-  modifier onlyValidator{
-    require(msg.sender == validatorAddress,"Only the validator may call this function");
-    _;
-  }
 
   /// After call registerActor(): Event to request import of ID and certificates of SC Actor
   event importIDCertificate(
@@ -63,48 +58,6 @@ contract SCM is Owned{
         uint96 EPC
   );
 
-
-
-  /// @notice  Implements the use case: register Actor
-  /// @dev Emits event to start the use case: ValidateID (access control)
-  function registerActor (address actorAddress_, uint40 prefix_, actorType  actorRole_) public  {
-    scActors[actorAddress_].companyPrefix=prefix_;
-    scActors[actorAddress_].actorAddress=msg.sender;
-    scActors[actorAddress_].actorRole=actorRole_;
-    scActors[actorAddress_].registered=true;
-    companyPrefixToactorAddress[prefix_]=msg.sender;
-      //Start the SCA certificate validation: import the ID and Certificates
-    emit importIDCertificate(actorAddress_, prefix_);
-
-  }
-
-  /**
-   /* Interworking with WallId Architecture
-   */
-
-  /// @notice called by User after successful importIDCertificate
-  function IDCertificateImported(address actorAddress_, uint40 prefix_) public{
-      emit RequestKYC(actorAddress_, prefix_);
-  }
-
-  /// @notice Called by CertificateValidator after KYC(Actor) has been completed - only CertificateValidator address may call this
-  function KYCcompleted(address actorAddress_) public onlyValidator{
-    setActorAsValidated(actorAddress_);
-  }
-
-  /// @notice called by User after successful importEPCCertificate
-  function ProductCertificateImported(address actorAddress_, uint96 EPC_) public{
-      //request KYP for the ownerAddress which in this case is also the the viewerAddress
-      emit RequestKYP(actorAddress_, actorAddress_, EPC_);
-  }
-
-  /// @notice Called by CertificateValidator after KYP (Product) has been completed - only CertificateValidator address may call this
-  function KYPcompleted(uint96 EPC_) public onlyValidator{
-      setProductAsCertified(EPC_);
-  }
-
-
-
    /**
     /* The Certificate Validator role  (SCM Manager) is Required
     * The SCM Manager/Validator is responsible to validate the SCA identities
@@ -116,36 +69,11 @@ contract SCM is Owned{
 
   address validatorAddress;
 
-  /// ValidateID: Set validator wallet address
-  function setValidator(address validatorAddress_) public onlyOwner{
-    validatorAddress=validatorAddress_;
-    scActors[validatorAddress_].actorAddress=validatorAddress_;
-    scActors[validatorAddress_].actorRole=actorType.MANAGER;
-    scActors[validatorAddress_].registered=true;
-    scActors[validatorAddress_].validated=true;
-  }
-  /// Helper function
-  function setActorAsValidated(address actorAddress_) internal returns (bool ret) {
-       scActors[actorAddress_].validated=true;
-       return true;
-  }
 
-  /// Helper function
-  function getActorAddress(uint40 prefix_) public view returns (address) {
-    return companyPrefixToactorAddress[prefix_];
-  }
-  /// Helper function
-  function getActorRole(address actorAddress_) public view returns (actorType) {
-    return scActors[actorAddress_].actorRole;
-  }
-  /// Helper function
-  function isActorValidated(address actorAddress_) public view returns(bool ret){
-    return scActors[actorAddress_].validated;
-  }
-
-    /// Helper function
-  function isActorRegistered(address addressToCheck_) public view returns(bool ret){
-    return scActors[addressToCheck_].registered;
+  /// ValidateID: onlyValidator
+  modifier onlyValidator{
+    require(msg.sender == validatorAddress,"Only the validator may call this function");
+    _;
   }
 
   /// Only supplier can register products
@@ -183,6 +111,78 @@ contract SCM is Owned{
       require(isActorRegistered(addressToCheck_), "Address is not a registered SC Actor");
         _;
     }
+
+    /// ValidateID: Set validator wallet address
+    function setValidator(address validatorAddress_) public onlyOwner{
+      validatorAddress=validatorAddress_;
+      scActors[validatorAddress_].actorAddress=validatorAddress_;
+      scActors[validatorAddress_].actorRole=actorType.MANAGER;
+      scActors[validatorAddress_].registered=true;
+      scActors[validatorAddress_].validated=true;
+    }
+    /// Helper function
+    function setActorAsValidated(address actorAddress_) internal returns (bool ret) {
+         scActors[actorAddress_].validated=true;
+         return true;
+    }
+
+    /// Helper function
+    function getActorAddress(uint40 prefix_) internal view returns (address) {
+      return companyPrefixToactorAddress[prefix_];
+    }
+    /// Helper function
+    function getActorRole(address actorAddress_) internal view returns (actorType) {
+      return scActors[actorAddress_].actorRole;
+    }
+    /// Helper function
+    function isActorValidated(address actorAddress_) internal view returns(bool ret){
+      return scActors[actorAddress_].validated;
+    }
+
+      /// Helper function
+    function isActorRegistered(address addressToCheck_) internal view returns(bool ret){
+      return scActors[addressToCheck_].registered;
+    }
+
+
+    /// @notice  Implements the use case: register Actor
+    /// @dev Emits event to start the use case: ValidateID (access control)
+    function registerActor (address actorAddress_, uint40 prefix_, actorType  actorRole_) public  {
+      scActors[actorAddress_].companyPrefix=prefix_;
+      scActors[actorAddress_].actorAddress=msg.sender;
+      scActors[actorAddress_].actorRole=actorRole_;
+      scActors[actorAddress_].registered=true;
+      companyPrefixToactorAddress[prefix_]=msg.sender;
+        //Start the SCA certificate validation: import the ID and Certificates
+      emit importIDCertificate(actorAddress_, prefix_);
+
+    }
+
+    /**
+     /* Interworking with WallId Architecture
+     */
+
+    /// @notice called by User after successful importIDCertificate
+    function IDCertificateImported(address actorAddress_, uint40 prefix_) public{
+        emit RequestKYC(actorAddress_, prefix_);
+    }
+
+    /// @notice Called by CertificateValidator after KYC(Actor) has been completed - only CertificateValidator address may call this
+    function KYCcompleted(address actorAddress_) public onlyValidator{
+      setActorAsValidated(actorAddress_);
+    }
+
+    /// @notice called by User after successful importEPCCertificate
+    function ProductCertificateImported(address actorAddress_, uint96 EPC_) public{
+        //request KYP for the ownerAddress which in this case is also the the viewerAddress
+        emit RequestKYP(actorAddress_, actorAddress_, EPC_);
+    }
+
+    /// @notice Called by CertificateValidator after KYP (Product) has been completed - only CertificateValidator address may call this
+    function KYPcompleted(uint96 EPC_) public onlyValidator{
+        setProductAsCertified(EPC_);
+    }
+
 
   /**
   /* SCM Product Management
