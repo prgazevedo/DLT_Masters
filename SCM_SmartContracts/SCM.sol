@@ -349,6 +349,12 @@ contract SCM is Owned{
         ownerProducts[ownerAddress_].epcPointers[EPC_]=epcPointer;
     }
 
+    /// @notice When the product is to be sold the owner is the SC Manager
+    function setManagerAsOwner( uint96 EPC_) internal returns (bool ret){
+        productMap[EPC_].owner = validatorAddress;
+        productMap[EPC_].nextOwner = validatorAddress;
+        return true;
+    }
     /// Internal Helper function
     /// SCAs can view certificate and Customer by proxy if product is in sale (role=MANAGER)
     function isCallerAllowedToViewCertificate(address callerAddress_,uint96 EPC_) internal view returns(bool retAllowed){
@@ -468,24 +474,17 @@ contract SCM is Owned{
          return true;
     }
 
-
     //TODO when to release memory of sold products?
-    /// @notice Implements setProductAsCertified
+    /// @notice Implements setProductAsSold
     function setProductAsSold(uint96 EPC_)
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
       isCallerCurrentOwner(EPC_) public returns (bool ret) {
          setCurrentState( EPC_,custodyState.sold);
-         setManagerAsOwner(EPC_);
-         return true;
+         if(setManagerAsOwner(EPC_)) return true;
+         else return false;
     }
 
-    /// @notice When the product is to be sold the owner is the SC Manager
-    function setManagerAsOwner( uint96 EPC_) internal returns (bool ret){
-        productMap[EPC_].owner = validatorAddress;
-        productMap[EPC_].nextOwner = validatorAddress;
-        return true;
-    }
 
     /*
     * MAJOR USE CASES
