@@ -215,13 +215,15 @@ contract SCM is Owned{
     /// Map with all products by EPC
     mapping (uint96 => productData) public productMap;
 
+    /* reduce storage by removing product balance per owner
     struct ownedEPCs {
       uint96[] myOwnedEPCS; //dynamic size array
       mapping(uint96 => uint) epcPointers;
     }
     /// Map with products by owner
     mapping (address => ownedEPCs) internal ownerProducts;
-
+    */
+    
     /**
     /* SCM Product Function Modifiers
     */
@@ -243,10 +245,12 @@ contract SCM is Owned{
        require(isMember(EPC_),"Product not registered. Register product first");
         _;
     }
+    /*
     modifier ownerHasProducts(){
         require(haveProducts(msg.sender),"Caller does not have any products. Add products first");
       _;
     }
+    */
 
     /// EPC must belong to caller
     modifier isCallerCurrentOwner(uint96 EPC_){
@@ -314,7 +318,9 @@ contract SCM is Owned{
       else return false;
     }
 
+    /*  next code commented to remove balance of products
     /// Internal Helper function
+
     function haveProducts(address ownerAddress_) internal view returns (bool ret){
       if(ownerProducts[ownerAddress_].myOwnedEPCS.length != 0) return true;
       else return false;
@@ -330,6 +336,7 @@ contract SCM is Owned{
       if(ownerProducts[ownerAddress_].myOwnedEPCS[getEPCPointer(ownerAddress_,EPC_)] == EPC_) return true;
       else return false;
     }
+
     /// Internal Helper function
     function isEPCOwned(address ownerAddress_, uint96 EPC_) internal view returns(bool isOwned) {
         if(!haveProducts(ownerAddress_)) return false;
@@ -348,7 +355,7 @@ contract SCM is Owned{
         uint epcPointer = ownerProducts[ownerAddress_].myOwnedEPCS.push(EPC_)-1;
         ownerProducts[ownerAddress_].epcPointers[EPC_]=epcPointer;
     }
-
+    */
     /// @notice When the product is to be sold the owner is the SC Manager
     function setManagerAsOwner( uint96 EPC_) internal returns (bool ret){
         productMap[EPC_].owner = validatorAddress;
@@ -373,6 +380,7 @@ contract SCM is Owned{
     /* SCM Product GET/SET Use case functions
     */
 
+    /* next code commented to remove balance of products
     /// @notice Implements the use case:  getEPCBalance
     /// TODO TEST
     function getEPCBalance(address ownerAddress_)
@@ -394,6 +402,7 @@ contract SCM is Owned{
         require(haveProducts(ownerAddress_),"You have no products registered");
         return ownerProducts[msg.sender].myOwnedEPCS;
     }
+    */
 
     /// @notice  Implements the use case:  getCurrentOwner
     function getCurrentOwner(uint96 EPC_)
@@ -517,7 +526,8 @@ contract SCM is Owned{
         productMap[EPC_].nextOwner = callerAddress_;
         productMap[EPC_].location = _location;
         productMap[EPC_].myEPC = EPC_;
-        addEPC(callerAddress_, EPC_);
+        //next line commented to remove balance of products
+        //addEPC(callerAddress_, EPC_);
         //Start the Product certificate validation: import the ID and Certificates
         emit importEPCCertificate(callerAddress_, EPC_);
         return true;
@@ -534,7 +544,6 @@ contract SCM is Owned{
     isStateOwned(EPC_) public returns (bool ret){
         productMap[EPC_].custody = custodyState.inTransfer;
         productMap[EPC_].nextOwner = addressTO_;
-        //TODO replace return with event
         return true;
     }
 
@@ -549,7 +558,6 @@ contract SCM is Owned{
         productMap[EPC_].owner = msg.sender;
         productMap[EPC_].custody = custodyState.inControl;
         productMap[EPC_].nextOwner = msg.sender;
-        //TODO replace return with event
         return true;
     }
 
@@ -562,8 +570,8 @@ contract SCM is Owned{
         setCurrentState( EPC_,custodyState.lost );
         productMap[EPC_].owner = msg.sender;
         productMap[EPC_].nextOwner = msg.sender;
-        deleteEPC(msg.sender, EPC_);
-        //TODO replace return with event
+        //next line commented to remove balance of products
+        //deleteEPC(msg.sender, EPC_);
         return true;
     }
 
@@ -587,9 +595,10 @@ contract SCM is Owned{
         productMap[newEPC_].location = productMap[oldEPC_].location;
         productMap[newEPC_].myEPC = newEPC_;
         productMap[newEPC_].previousEPC=oldEPC_;
-        deleteEPC(msg.sender, oldEPC_);
-        addEPC(msg.sender, newEPC_);
-        //
+        //next 2 lines commented to remove balance of products
+        //deleteEPC(msg.sender, oldEPC_); remove balance of products
+        //addEPC(msg.sender, newEPC_);  remove balance of products
+
         return true;
     }
 
