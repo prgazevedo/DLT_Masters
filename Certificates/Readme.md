@@ -5,7 +5,7 @@
 -  [Producer.cnf](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/intermediate/producer/Producer.cnf)
 
 ## Certificate files
--  [ca.cert.pem] (https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/certs/ca.cert.pem)
+-  [ca.cert.pem](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/certs/ca.cert.pem)
 -  [ca-chain.cert.pem](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/intermediate/certs/ca-chain.cert.pem)
 -  [intermediate.cert.pem](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/intermediate/certs/intermediate.cert.pem)
 -  [newProduct.cert.pem](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/intermediate/products/productCerts/newProduct.cert.pem)
@@ -21,7 +21,7 @@
 -  [PKI certificate chain](https://jamielinux.com/docs/openssl-certificate-authority/create-the-root-pair.html)
 -  [Verify certificate chain](https://stackoverflow.com/questions/25482199/verify-a-certificate-chain-using-openssl-verify)
 -  [Copy X509 extensions](https://stackoverflow.com/questions/33989190/subject-alternative-name-is-not-copied-to-signed-certificate)
--  [Get subjectaltName into certificate -1 ](: https://www.linuxquestions.org/questions/linux-software-2/get-subjectaltname-into-certificate-my-own-ca-4175479553/)
+-  [Get subjectaltName into certificate -1 ](https://www.linuxquestions.org/questions/linux-software-2/get-subjectaltname-into-certificate-my-own-ca-4175479553/)
 -  [Get subjectaltName into certificate -2 ](https://lists.debian.org/debian-user-german/2012/02/msg00788.html)
 -  [Openssl ca versus x509](https://stackoverflow.com/questions/48672935/openssl-ca-vs-openssl-x509-the-openssl-ca-command-doesnt-register-the-same-on)
 -  [Create a Microsoft OID](https://gallery.technet.microsoft.com/scriptcenter/56b78004-40d0-41cf-b95e-6e795b2e8a06#content)
