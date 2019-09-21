@@ -1,0 +1,2 @@
+V	290915203331Z		1000	unknown	/C=PT/ST=Portugal/O=IFAP/OU=Associa\xC3\x83\xC2\xA7\xC3\x83\xC2\xA3o de Criadores de Bovinos de Ra\xC3\x83\xC2\xA7a Mirandesa/CN=Mirandesa/emailAddress=mirandesa@mirandesa.pt
+V	290917174309Z		1001	unknown	/C=PT/ST=Portugal/O=Mirandesa/OU=Associa\xC3\x83\xC2\xA7\xC3\x83\xC2\xA3o de Criadores de Bovinos de Ra\xC3\x83\xC2\xA7a Mirandesa/CN=Mirandesa/emailAddress=mirandesa@mirandesa.pt
