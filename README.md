@@ -1,5 +1,5 @@
 
-# Repository for Documentation
+# Repository for work on my masters on Supply Chain Management in Blockchain
 
 [Introduction to PKC and PKI](https://github.com/prgazevedo/DLT_Masters/wiki)
 
