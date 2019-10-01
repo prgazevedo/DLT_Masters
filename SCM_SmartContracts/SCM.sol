@@ -121,8 +121,8 @@ contract SCM is Owned{
       scActors[validatorAddress_].validated=true;
     }
     /// Helper function
-    function setActorAsValidated(address actorAddress_) internal returns (bool ret) {
-         scActors[actorAddress_].validated=true;
+    function setActorAsValidated(address actorAddress_, bool validated_) internal returns (bool ret) {
+         scActors[actorAddress_].validated=validated_;
          return true;
     }
 
@@ -169,7 +169,7 @@ contract SCM is Owned{
 
     /// @notice Called by CertificateValidator after KYC(Actor) has been completed - only CertificateValidator address may call this
     function KYCcompleted(address actorAddress_) public onlyValidator{
-      setActorAsValidated(actorAddress_);
+      setActorAsValidated(actorAddress_, true);
     }
 
     /// @notice called by User after successful importEPCCertificate
@@ -180,7 +180,7 @@ contract SCM is Owned{
 
     /// @notice Called by CertificateValidator after KYP (Product) has been completed - only CertificateValidator address may call this
     function KYPcompleted(uint96 EPC_) public onlyValidator{
-        setProductAsCertified(EPC_);
+        setProductAsCertified(EPC_, true);
     }
 
 
@@ -223,7 +223,7 @@ contract SCM is Owned{
     /// Map with products by owner
     mapping (address => ownedEPCs) internal ownerProducts;
     */
-    
+
     /**
     /* SCM Product Function Modifiers
     */
@@ -473,13 +473,13 @@ contract SCM is Owned{
     }
 
     /// @notice Implements the use case: setProductAsCertified
-    function setProductAsCertified(uint96 EPC_)
+    function setProductAsCertified(uint96 EPC_, bool certified_)
       isAddressValidated(msg.sender)
       isRegisteredEPC(EPC_)
       isCallerCurrentOwner(EPC_) public returns (bool ret) {
         productMap[EPC_].certificateOwner=getCurrentOwner(EPC_);
         productMap[EPC_].certificateEPC=EPC_;
-         productMap[EPC_].hasCertificate=true;
+         productMap[EPC_].hasCertificate=certified_;
          return true;
     }
 
