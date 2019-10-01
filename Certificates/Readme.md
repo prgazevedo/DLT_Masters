@@ -1,4 +1,15 @@
+
+
+
+
 # This is the repository for PKI configuration and certificates
+Note: passwords to test the PKI are
+ -  CA: ifap
+ -  Intermediate CA: mirandesa
+ -  producer CA: agrogranjo
+## Introduction to commands
+
+
 ## Configuration files
 -  [CA openssl.cnf](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/openssl.cnf)
 -  [x509v3.cnf](https://github.com/prgazevedo/DLT_Masters/blob/master/Certificates/OpenSSL/root/ca/intermediate/x509v3.cnf)
