@@ -7,4 +7,4 @@
 
 [Smart Contracts](https://github.com/prgazevedo/DLT_Masters/tree/master/SCM_SmartContracts)
 
-[Diagrams](https://github.com/prgazevedo/DLT_Masters/tree/master/Diagrams)
+[Diagrams](https://github.com/prgazevedo/DLT_Masters/tree/master/Docs/Diagrams)
